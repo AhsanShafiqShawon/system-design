@@ -16,6 +16,8 @@ By default, the OS can migrate threads freely between cores for load balancing. 
 - **Predictable latency** — critical for real-time/low-latency systems
 - **NUMA awareness** — keeps threads close to their memory on multi-socket machines
 
+Simple analogy: NUMA is like having two kitchens in a restaurant. Each chef works fastest using their own kitchen's fridge. They can borrow ingredients from the other kitchen, but someone has to walk across the building to get them. NUMA-aware pinning just makes sure each chef always uses their own fridge.
+
 **Common use cases:**
 - High-frequency trading
 - Real-time audio/video processing
