@@ -132,15 +132,11 @@ A cache miss that goes to RAM is ~50x slower than an L1 hit.
 
 Two threads on different cores write to different variables that happen to live on the same **cache line** (64 bytes). The hardware cache coherence protocol (MESI) forces the cores to negotiate ownership of that line on every write, creating invisible serialization.
 
-# False Sharing & CPU Cache Coherence
-
-## What is a Cache Line?
+##### What is a Cache Line?
 
 Think of a **cache line (64 bytes)** as a small "box" of memory that a CPU core works with at a time.
 
----
-
-## The Problem Setup
+##### The Problem Setup
 
 Imagine this situation:
 
@@ -148,77 +144,13 @@ Imagine this situation:
 - **Thread B** (on Core 2) writes to variable `y`
 - `x` and `y` just happen to live inside the **same 64-byte box** (cache line)
 
-### What you'd expect
-
-> "No problem — both threads can run in parallel. They're writing to *different* variables."
-
-### What actually happens
-
-Modern CPUs use a protocol like **MESI** to keep caches consistent. That protocol enforces:
+You'd expect no conflict — they're different variables. But modern CPUs use **MESI** to keep caches consistent, and that protocol enforces:
 
 > **Only one core can own a cache line for writing at a time.**
 
-So even though Core 1 only wants `x` and Core 2 only wants `y` — they are **forced to fight over the same cache line**.
+So even though Core 1 only wants `x` and Core 2 only wants `y` — they are forced to fight over the same cache line.
 
----
-
-## Step-by-Step Analogy
-
-Imagine:
-
-- Two people → two CPU cores
-- One shared notebook page → one cache line
-- Each wants to write on a **different part** of the same page
-
-What happens:
-
-1. Core 1 gets the page → writes to `x`
-2. Core 2 wants to write → must **take the page** from Core 1
-3. Core 1 wants to write again → must **take it back**
-4. Repeat…
-
-The page keeps **bouncing** between them.
-
-### Why this is bad
-
-| Problem | Effect |
-|--------|--------|
-| Each "handoff" costs time | Cache invalidation + transfer overhead |
-| Threads can't overlap | They become **silently serialized** |
-| Code *looks* parallel | But *performs* like it's partially single-threaded |
-
-This is called 👉 **False Sharing**.
-
----
-
-## The Key Insight
-
-> **The CPU doesn't care about variables — it cares about cache lines.**
-
-So even if your code looks independent:
-
-```java
-int x; // thread A writes this
-int y; // thread B writes this
-```
-
-If `x` and `y` sit close in memory → **same cache line** → contention.
-
----
-
-## Fixing the Mental Model
-
-### ❌ Common misconception
-
-> "Each core has its own cache line — they should be independent."
-
-### ✅ Reality
-
-Both cores **can cache the same memory block**, but only one can write at a time.
-
----
-
-## How Cache Coherence Actually Works
+##### Step-by-Step: How the Ping-Pong Happens
 
 Suppose in memory:
 
@@ -229,7 +161,7 @@ Address 0x1004 → y
 Cache line covers: 0x1000 → 0x103F  (contains BOTH x and y)
 ```
 
-### Step 1 — Both cores read
+**Step 1 — Both cores read:**
 
 ```
 Core 1 loads cache line [0x1000–0x103F] → into its L1
@@ -239,9 +171,9 @@ Core 1 L1: [x, y]  ✓
 Core 2 L1: [x, y]  ✓  (identical copies)
 ```
 
-### Step 2 — Core 1 writes to `x`
+**Step 2 — Core 1 writes to `x`:**
 
-MESI kicks in. Core 1 must get **exclusive ownership** and broadcasts:
+MESI kicks in. Core 1 must get exclusive ownership and broadcasts:
 
 > "Invalidate your copy of this cache line."
 
@@ -250,58 +182,32 @@ Core 1: owns [x, y]  (modified)
 Core 2: copy → INVALID ✗
 ```
 
-### Step 3 — Core 2 writes to `y`
+**Step 3 — Core 2 writes to `y`:**
 
-Core 2's copy is now invalid, so it must:
-
-1. Request the cache line from Core 1
-2. Core 1 gives it up
+Core 2's copy is now invalid. It must request the cache line from Core 1, which then gives it up.
 
 ```
 Core 2: owns [x, y]  (modified)
 Core 1: copy → INVALID ✗
 ```
 
-### 🔁 This keeps repeating
+This keeps repeating — even though the two cores care about entirely different variables. They are forced to exchange the entire 64-byte line on every write.
 
-Even though Core 1 only cares about `x` and Core 2 only cares about `y`, they are forced to **exchange the entire 64-byte line** every time either of them writes.
+##### Why This Is Bad
 
----
+| Problem | Effect |
+|--------|--------|
+| Each "handoff" costs time | Cache invalidation + transfer overhead |
+| Threads can't overlap | They become **silently serialized** |
+| Code *looks* parallel | But *performs* like it's partially single-threaded |
 
-## Why Cores Share the Same Cache Line
+##### Key Insight
 
-Cache coherence works at **cache line granularity**, not variable granularity.
+> **The CPU doesn't care about variables — it cares about cache lines.**
 
-The CPU does **not** track:
-- "`x` belongs to Core 1"
-- "`y` belongs to Core 2"
+Cache coherence works at cache line granularity, not variable granularity. The CPU only sees: "this 64-byte block changed."
 
-The CPU only sees:
-- "This **64-byte block** changed."
-
----
-
-## Mental Model Summary
-
-| Concept | Correct understanding |
-|--------|----------------------|
-| Cache line | Smallest unit of ownership |
-| MESI | Traffic cop: only one writer at a time |
-| Different variables | ≠ independent if they share a cache line |
-| Private caches | Each core *may* cache the same block |
-
----
-
-## One-Line Takeaway
-
-> Two cores can hold the same cache line simultaneously. When both write to it, it causes a **ping-pong** — that's **false sharing**.
-
----
-
-## What's Next?
-
-- **Visualize** memory layout and how padding fixes false sharing
-- **Relate** this to Java/C++ structs and arrays (common in performance interviews)
+##### In Practice (Java)
 
 ```java
 // These two fields share a cache line — writing them from different threads
