@@ -27,16 +27,16 @@ A **process** is an independent program in execution. It has its own memory spac
 
 - Isolated: one process cannot directly access another's memory
 - Heavyweight to create (OS must allocate a new address space)
-- Communication between processes requires IPC (pipes, sockets, shared memory)
+- Communication between processes requires IPC (Inter-Process Communication), such as pipes, sockets, shared memory, etc.
 - A crash in one process doesn't affect others
 
 ### Thread
 
-A **thread** is a unit of execution *within* a process. Multiple threads share the same memory space (heap, globals, open files) but each has its own stack and program counter.
+A **thread** is a unit of execution *within* a process. Multiple threads share the same memory space (heap, globals, open files), but each has its own stack and program counter.
 
 - Lightweight to create (no new address space needed)
-- Shared memory makes communication fast but introduces race conditions
-- A crashed thread (e.g. unhandled exception) can bring down the whole process
+- Shared memory makes communication fast, but introduces race conditions
+- A crashed thread (e.g., unhandled exception) can bring down the whole process
 - Requires synchronization primitives (locks, semaphores) to avoid data corruption
 
 ### Side-by-side Comparison
@@ -190,7 +190,7 @@ Virtual Thread 5 ──┼──► Carrier Thread (OS Thread) 2
 Virtual Thread 6 ──┘
 ```
 
-When a virtual thread **blocks** (e.g. waiting on I/O), the JVM **unmounts** it from the carrier thread — saves its stack to the heap — and mounts a different virtual thread. The OS thread never blocks.
+When a virtual thread **blocks** (e.g., waiting on I/O), the JVM **unmounts** it from the carrier thread — saves its stack to the heap — and mounts a different virtual thread. The OS thread never blocks.
 
 Implications:
 - Stack is stored **on the heap** (not native stack) — starts tiny, grows as needed
@@ -210,7 +210,7 @@ Each stack frame contains:
 - Reference to the runtime constant pool
 - Return address
 
-When you call a method, a new frame is pushed. When it returns, the frame is popped and the return value is placed on the caller's operand stack.
+When you call a method, a new frame is pushed. When it returns, the frame is popped, and the return value is placed on the caller's operand stack.
 
 ---
 
@@ -246,7 +246,7 @@ java -Xmx512m com.miniagoda.Main
 4. JVM creates the **main thread** (a platform thread → OS thread)
 5. The main thread's JVM stack gets its first frame: `main(String[] args)`
 6. `ClassLoader` hierarchy is bootstrapped (Bootstrap → Platform → App)
-7. Your `Main` class is located, loaded, linked, initialized
+7. Your `Main` class is located, loaded, linked, and initialized
 8. `main()` bytecode executes on the main thread's operand stack
 9. When you create a `new Thread(() -> ...)` and call `.start()`, JVM calls `pthread_create` → new OS thread → new JVM stack
 10. Both threads now run concurrently, sharing the heap
@@ -364,7 +364,7 @@ Only one thread's update will match the `WHERE` clause. The other gets 0 rows af
 
 #### What Changes With Multiple Servers
 
-Scale out to multiple server processes and the picture shifts:
+Scale out to multiple server processes, and the picture shifts:
 
 ```
 Process 1 (Server A) → Thread T1 → User A
