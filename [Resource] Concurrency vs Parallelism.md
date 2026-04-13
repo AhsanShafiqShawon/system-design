@@ -224,6 +224,47 @@ class Counters {
 
 ### 2.4 How the JVM Sees It
 
+#### OS Threads vs JVM Threads
+
+Start with what you already know: a **thread** is a unit of execution — something that runs code. The question is: *who creates and manages it?*
+
+**OS thread** — a real thread created and managed by the operating system kernel. The OS scheduler decides when it runs and which CPU core it gets. It can run truly in parallel, but it's expensive: context switching involves the kernel, and each thread carries significant overhead.
+
+**JVM thread** — what you create in Java:
+
+```java
+new Thread(() -> {
+    // do work
+}).start();
+```
+
+This is an abstraction managed by the JVM. In classic Java, the mapping is 1:1:
+
+```
+Java Thread  →  OS Thread  →  CPU core
+```
+
+So a JVM thread and an OS thread are different layers of the same thing — the JVM thread is what Java gives you, the OS thread is what actually runs on hardware.
+
+The distinction matters because OS threads are expensive:
+- Stack memory: ~1MB per thread
+- Expensive context switching (kernel involved)
+- Limited scalability — you can't create millions of them
+
+This is exactly why **Virtual Threads** (Java 21) change the picture — many JVM threads can now multiplex onto a small pool of OS threads:
+
+```
+Virtual Threads (millions)
+         ↓
+   Few OS Threads
+         ↓
+        CPU
+```
+
+So: in classic Java, 1 JVM thread = 1 OS thread. In modern Java, that assumption no longer holds.
+
+---
+
 #### Threads
 
 `java.lang.Thread` maps 1:1 to an OS thread (platform thread). Creating one allocates:
