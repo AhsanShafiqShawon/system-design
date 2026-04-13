@@ -253,6 +253,135 @@ java -Xmx512m com.miniagoda.Main
 
 Every Spring bean, every entity object, every cached value — all of it lives on that shared heap, accessible by any thread handling any HTTP request. The framework (Spring's request thread pool) handles the concurrency, but your code must be correct under concurrent access.
 
+#### Concrete Example: How Many Processes and Threads?
+
+Consider this program:
+
+```cpp
+int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    cout << add(3, 4) << "\n";
+    return 0;
+}
+```
+
+When you run `./a.out`, the OS creates exactly **1 process** and **1 thread** — the main thread — which is the default for any program that doesn't explicitly create more.
+
+```
+Process (1 total)
+   └── Thread T1 — main thread
+           └── executes main()
+                 └── calls add()
+```
+
+`main()` and `add()` are just **functions** — not threads. The thread is the flow of control that *executes* those functions. Functions don't create threads; threads execute functions.
+
+This changes only if you explicitly spawn one:
+
+```cpp
+#include <thread>
+
+void worker() { /* do something */ }
+
+int main() {
+    std::thread t(worker);
+    t.join();
+}
+```
+
+Now: **1 process, 2 threads** — the main thread and the worker thread, both sharing the same address space.
+
+---
+
+### 2.8 Applied Example: Two Users Booking the Last Hotel Room
+
+This is where processes, threads, and race conditions converge into a real scenario.
+
+#### The Setup
+
+Two users click "Book" at the same time. The backend is a single Java server process handling both requests on separate threads:
+
+```
+Process: Hotel Server
+   ├── Thread T1 → handles User A's request
+   └── Thread T2 → handles User B's request
+```
+
+The database currently holds:
+
+```
+rooms_available = 1
+```
+
+#### The Race Condition, Step by Step
+
+```
+T1 reads  → rooms_available = 1  ✓
+T2 reads  → rooms_available = 1  ✓  (T2 read before T1 wrote back)
+
+T1 decides: "room available, proceed"
+T2 decides: "room available, proceed"
+
+T1 writes → rooms_available = 0
+T2 writes → rooms_available = 0
+```
+
+Result: **two bookings confirmed, one room**. This is a race condition — both threads read the same value, made the same decision, and neither knew the other existed.
+
+#### Why This Happens
+
+Threads inside the same process share memory. Reading a value and writing it back are two separate steps, and the OS scheduler can preempt a thread between them. From T2's perspective, T1 simply hadn't written yet when it read.
+
+#### How to Fix It
+
+**Option 1 — In-process lock.** Serialize access so only one thread can execute the check-and-book logic at a time:
+
+```java
+synchronized (roomLock) {
+    if (roomsAvailable > 0) {
+        roomsAvailable--;
+        confirmBooking();
+    }
+}
+```
+
+T1 enters the block → T2 waits at the door → T1 exits → T2 enters and finds `rooms_available = 0`.
+
+**Option 2 — Atomic database query.** Push the coordination down to the DB:
+
+```sql
+UPDATE rooms
+SET available = available - 1
+WHERE available > 0;
+```
+
+Only one thread's update will match the `WHERE` clause. The other gets 0 rows affected and knows to reject the booking.
+
+**Option 3 — Database transaction with isolation.** Wrapping the read-check-write in a transaction with the appropriate isolation level prevents one transaction from seeing another's uncommitted changes.
+
+#### What Changes With Multiple Servers
+
+Scale out to multiple server processes and the picture shifts:
+
+```
+Process 1 (Server A) → Thread T1 → User A
+Process 2 (Server B) → Thread T2 → User B
+```
+
+Processes have **separate memory spaces** — an in-process lock on Server A does nothing for Server B. The only shared resource is the database. Synchronization must now happen entirely at the DB level: atomic queries, transactions, or pessimistic/optimistic locking strategies.
+
+#### Mental Model Summary
+
+| Deployment | Shared resource | Where to synchronize |
+|---|---|---|
+| Single server | Heap memory + DB | In-process locks + DB constraints |
+| Multiple servers | DB only | DB transactions / atomic queries |
+
+> **Race conditions happen because multiple threads (or processes) act on the same data without coordination.** The fix is always the same idea — establish a single point of authority that serializes conflicting operations — but *where* you put that point depends on what the threads actually share.
+
 ---
 
 ## 3. Plain English Explanation
