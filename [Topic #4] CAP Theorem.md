@@ -1,6 +1,6 @@
 # CAP Theorem — A Complete Guide
 
-> A full conversation covering CAP Theorem from first principles to deep-dive, interactive simulation, and plain-English explanation.
+> A full conversation covering CAP Theorem from first principles to deep-dive and plain-English explanation.
 
 ---
 
