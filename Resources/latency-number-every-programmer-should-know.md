@@ -1,3 +1,5 @@
+![Latency Numbers Every Programmer Should Know](k0t1e.png)
+
 # Latency Numbers Every Programmer Should Know
 
 This document is a plain-English walkthrough of a classic reference chart that visualizes **how long common computer operations take**, using a pixel/square metaphor where each small square represents a unit of time. The more squares shown, the longer the operation takes.
@@ -51,5 +53,3 @@ A useful mental exercise to close with: if your application makes 10 sequential 
 Understanding these numbers does not just make you a better systems programmer — it gives you an intuition for *where to look first* when something is slow.
 
 ---
-
-*Source: [https://gist.github.com/2841832](https://gist.github.com/2841832)*
