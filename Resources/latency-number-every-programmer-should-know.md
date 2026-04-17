@@ -18,7 +18,7 @@ The chart groups operations into four rough tiers, from fastest to slowest.
 
 These happen inside or very close to the CPU chip itself.
 
-An **L1 cache reference** (0.5ns) and **L2 cache reference** (7ns) are reads from tiny, ultra-fast memory banks built right onto the processor. They are fast because the data is physically close to where the computation happens. A **branch misprediction** (5ns) is the penalty the CPU pays when it guesses wrong about which code path to execute next — modern CPUs speculatively run ahead, and a wrong guess means throwing that work away. A **mutex lock/unlock** (25ns) is the cost of coordinating safely between threads.
+An **L1 cache reference** (0.5ns) and **L2 cache reference** (7ns) are reads from tiny, ultra-fast memory banks built right onto the processor. They are fast because the data is physically close to where the computation happens. A [**branch misprediction**](#branch-prediction-explained) (5ns) is the penalty the CPU pays when it guesses wrong about which code path to execute next — modern CPUs speculatively run ahead, and a wrong guess means throwing that work away. A **mutex lock/unlock** (25ns) is the cost of coordinating safely between threads.
 
 At 100ns, you reach a **main memory reference** — reading from RAM. Notice how many more squares this takes compared to an L1 cache read. This gap (0.5ns vs 100ns) is exactly *why* CPU caches exist: RAM is fast in absolute terms, but **200× slower** than L1 cache. Every time you hear "cache locality matters," this number is the reason.
 
@@ -53,3 +53,63 @@ A useful mental exercise to close with: if your application makes 10 sequential 
 Understanding these numbers does not just make you a better systems programmer — it gives you an intuition for *where to look first* when something is slow.
 
 ---
+
+ <a id="branch-prediction-explained"></a>
+## Branch Misprediction
+
+### The Problem: CPUs Don't Like Waiting
+
+Modern CPUs are extremely fast, but they have a problem — they hate sitting idle. Reading the next instruction, decoding it, and executing it takes multiple steps, so CPUs use a technique called **pipelining**: they start working on the *next* instruction before the current one finishes.
+
+This works great for straight-line code. But what about an `if` statement?
+
+```java
+if (user.isAdmin()) {
+    // path A
+} else {
+    // path B
+}
+```
+
+The CPU hits this and faces a dilemma: it doesn't know yet whether `isAdmin()` is true or false, but it needs to keep the pipeline busy *right now*. So it **makes a guess** — this is called **branch prediction**.
+
+---
+
+### What Happens Next
+
+**If the guess is right** (prediction correct): the CPU already has the next instructions partially executed. You get the work essentially for free. ✅
+
+**If the guess is wrong** (misprediction): the CPU has been speculatively executing the *wrong* path. All that work has to be thrown away, the pipeline flushed, and execution restarted on the correct path. This wasted work costs roughly **5–20 CPU cycles** — which is where that ~5ns penalty in the chart comes from. ❌
+
+---
+
+### How the Predictor Works
+
+CPUs don't just guess randomly — they use sophisticated **branch predictor hardware** that learns from history. It essentially asks: *"The last several times I hit this branch, which way did it go?"*
+
+This is why **predictable patterns are cheap and unpredictable ones are expensive**:
+
+```java
+// Predictable — almost always goes the same way, predictor learns quickly
+if (index < array.length) { ... }
+
+// Unpredictable — random data, predictor is wrong ~50% of the time
+if (randomValue % 2 == 0) { ... }
+```
+
+---
+
+### A Famous Real-World Example
+
+There's a well-known Stack Overflow answer demonstrating this. Sorting an array *before* iterating over it with a conditional can make the loop dramatically faster — not because of anything the sort does logically, but because the sorted data creates a **predictable pattern** (all the falses, then all the trues) that the branch predictor can lock onto.
+
+Unsorted data → random true/false → constant mispredictions → slow.  
+Sorted data → predictable pattern → predictor always right → fast.
+
+---
+
+### Why It Matters for Java / JVM Code
+
+In Java specifically, the **JIT compiler** is aware of branch prediction. It profiles which branches are "hot" (taken frequently) and can reorder or optimize code to make the common path the predicted one. This is part of why JIT-compiled Java can approach C speeds for tight loops — the JIT is essentially coaching the CPU's predictor.
+
+The practical takeaway: in performance-critical inner loops, **data layout and access patterns matter** as much as algorithmic complexity.
