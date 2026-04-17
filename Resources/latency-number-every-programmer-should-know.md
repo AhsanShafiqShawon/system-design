@@ -1,4 +1,4 @@
-![Latency Numbers Every Programmer Should Know](./latency-numbers.png)
+![Latency Numbers Every Programmer Should Know](../assets/latency-numbers.png)
 
 # Latency Numbers Every Programmer Should Know
 
