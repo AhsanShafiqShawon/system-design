@@ -1,4 +1,4 @@
-# CAP Theorem — A Complete Guide
+# CAP Theorem
 
 > A full conversation covering CAP Theorem from first principles to deep-dive and plain-English explanation.
 
