@@ -18,7 +18,7 @@ The chart groups operations into four rough tiers, from fastest to slowest.
 
 These happen inside or very close to the CPU chip itself.
 
-An **L1 cache reference** (0.5ns) and **L2 cache reference** (7ns) are reads from tiny, ultra-fast memory banks built right onto the processor. They are fast because the data is physically close to where the computation happens. A [**branch misprediction**](#branch-prediction-explained) (5ns) is the penalty the CPU pays when it guesses wrong about which code path to execute next — modern CPUs speculatively run ahead, and a wrong guess means throwing that work away. A **mutex lock/unlock** (25ns) is the cost of coordinating safely between threads.
+An **L1 cache reference** (0.5ns) and **L2 cache reference** (7ns) are reads from tiny, ultra-fast memory banks built right onto the processor. They are fast because the data is physically close to where the computation happens. A [**branch misprediction**](#branch-prediction-explained) (5ns) is the penalty the CPU pays when it guesses wrong about which code path to execute next — modern CPUs speculatively run ahead, and a wrong guess means throwing that work away. A [**mutex lock/unlock**](#mutex) (25ns) is the cost of coordinating safely between threads.
 
 At 100ns, you reach a **main memory reference** — reading from RAM. Notice how many more squares this takes compared to an L1 cache read. This gap (0.5ns vs 100ns) is exactly *why* CPU caches exist: RAM is fast in absolute terms, but **200× slower** than L1 cache. Every time you hear "cache locality matters," this number is the reason.
 
@@ -113,3 +113,99 @@ Sorted data → predictable pattern → predictor always right → fast.
 In Java specifically, the **JIT compiler** is aware of branch prediction. It profiles which branches are "hot" (taken frequently) and can reorder or optimize code to make the common path the predicted one. This is part of why JIT-compiled Java can approach C speeds for tight loops — the JIT is essentially coaching the CPU's predictor.
 
 The practical takeaway: in performance-critical inner loops, **data layout and access patterns matter** as much as algorithmic complexity.
+
+# Mutex Lock/Unlock
+
+A **mutex** (short for **mut**ual **ex**clusion) is a synchronization tool used in multi-threaded programs to ensure that **only one thread can access a shared resource at a time**.
+
+---
+
+## The Problem It Solves
+
+Imagine two threads both trying to increment a counter simultaneously:
+
+```
+Thread A reads counter → value is 5
+Thread B reads counter → value is 5
+Thread A writes 5 + 1 = 6
+Thread B writes 5 + 1 = 6   ← should have been 7!
+```
+
+This is called a **race condition** — the result depends on the unpredictable timing of two threads. The counter should be 7 but ends up as 6.
+
+---
+
+<a id="mutex"></a>
+## How a Mutex Fixes It
+
+A mutex acts like a **key to a locked room**. Only the thread holding the key can enter. Everyone else waits outside.
+
+```
+Thread A locks the mutex   ← acquires the "key"
+Thread A reads counter → 5
+Thread A writes 5 + 1 = 6
+Thread A unlocks the mutex ← returns the "key"
+
+Thread B locks the mutex   ← now gets the "key"
+Thread B reads counter → 6
+Thread B writes 6 + 1 = 7  ← correct!
+Thread B unlocks the mutex
+```
+
+---
+
+## In Java
+
+```java
+// Using synchronized (built-in mutex)
+public synchronized void increment() {
+    counter++;
+}
+
+// Or explicitly with ReentrantLock
+private final Lock lock = new ReentrantLock();
+
+public void increment() {
+    lock.lock();
+    try {
+        counter++;
+    } finally {
+        lock.unlock(); // always unlock, even if exception thrown
+    }
+}
+```
+
+> **Why `finally`?** If an exception is thrown inside the `try` block, the `finally` block still runs — guaranteeing the lock is always released. Forgetting this causes a **deadlock**: all other threads wait forever for a lock that is never released.
+
+---
+
+## Why It Costs 25ns
+
+Locking/unlocking a mutex isn't free because the JVM/OS has to:
+
+1. **Atomically check** whether the mutex is already held (uses a special CPU instruction)
+2. **Update shared state** about who owns the lock — which may require cache coordination across CPU cores
+3. Potentially **suspend and wake threads** if there's contention
+
+The **25ns is the uncontended happy path** — when no other thread is competing for the lock. If threads are fighting over the same mutex, the cost skyrockets because threads get put to sleep and woken up by the OS, which involves a **context switch** costing thousands of nanoseconds.
+
+| Scenario | Approximate Cost |
+|---|---|
+| Uncontended lock/unlock | ~25ns |
+| Contended (thread must wait) | ~1,000–10,000ns+ |
+| Context switch (OS suspends thread) | ~1–10µs |
+
+---
+
+## Common Pitfalls
+
+- **Deadlock** — Thread A holds Lock 1 and waits for Lock 2; Thread B holds Lock 2 and waits for Lock 1. Both wait forever.
+- **Forgetting to unlock** — Always use `try/finally` or try-with-resources patterns.
+- **Over-locking** — Holding a mutex for too long serializes threads and kills performance. Keep the locked section as small as possible.
+- **Lock ordering** — If you must acquire multiple locks, always acquire them in the same order across all threads to prevent deadlock.
+
+---
+
+## The Core Takeaway
+
+A mutex trades **a small performance cost for correctness**. The 25ns uncontended cost is negligible in most applications. The real danger is contention — designing your system to minimize threads competing for the same lock is far more important than the raw cost of the operation itself.
