@@ -114,6 +114,8 @@ In Java specifically, the **JIT compiler** is aware of branch prediction. It pro
 
 The practical takeaway: in performance-critical inner loops, **data layout and access patterns matter** as much as algorithmic complexity.
 
+---
+
 <a id="mutex"></a>
 # Mutex Lock/Unlock
 
