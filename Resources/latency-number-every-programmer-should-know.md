@@ -1,4 +1,4 @@
-![Latency Numbers Every Programmer Should Know](k0t1e.png)
+![Latency Numbers Every Programmer Should Know](C:/Users/Asus/Downloads/k0t1e.png)
 
 # Latency Numbers Every Programmer Should Know
 
