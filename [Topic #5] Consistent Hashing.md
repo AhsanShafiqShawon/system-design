@@ -241,3 +241,80 @@ Instead of storing each key on just one server, you walk clockwise and store it 
 ### The One-Line Intuition
 
 Instead of asking *"which server is this key assigned to?"* you ask *"who is this key's nearest neighbor on a shared circle?"* — and neighbors barely change when the circle gains or loses a member.
+
+---
+
+## Q&A: Virtual Nodes and Physical Node Failures
+
+### What happens to A1, A2, A3, … when physical node A crashes?
+
+**Short answer:** All of A's virtual nodes go down together — because they are not independent servers, just multiple ring positions pointing to the same physical machine.
+
+```
+Physical Node A
+ ├── A1  ← same machine
+ ├── A2  ← same machine
+ └── A3  ← same machine
+```
+
+If Node A dies:
+
+```
+A  ❌
+A1 ❌
+A2 ❌
+A3 ❌
+```
+
+**What happens on the ring?**
+
+Each virtual node owned a small range of keys. With A gone, ownership of those ranges gets reassigned to the next healthy node clockwise (or replicas take over):
+
+```
+Key K1 → was A1's → now reassigned clockwise
+Key K2 → was A2's → now reassigned clockwise
+Key K3 → was A3's → now reassigned clockwise
+```
+
+**Important distinction:** Virtual nodes are metadata — ring positions and ownership markers. They are not mini-processes, not mini-servers, not separate copies.
+
+---
+
+### Why virtual nodes make failure recovery smoother
+
+**Without virtual nodes** — each physical node has one position, so it owns one large arc:
+
+```
+Ring:  ── A ──────── B ──────────────── C ── D ──
+```
+
+If A dies → all of A's keys flood onto the next node (B). B suddenly absorbs a huge chunk of load. ❌ Hotspot risk. ❌ Imbalanced traffic.
+
+**With virtual nodes** — each physical node has many small positions scattered around the ring:
+
+```
+Ring:  ── A1 ── B1 ── A2 ── C1 ── A3 ── D1 ──
+```
+
+If A dies:
+- Keys from A1's range → go to B
+- Keys from A2's range → go to C
+- Keys from A3's range → go to D
+
+Load spreads across multiple surviving nodes instead of piling onto one.
+
+| Scenario | Without vnodes | With vnodes |
+|---|---|---|
+| Node A fails | All load → B | Load spreads → B, C, D |
+| New node joins | Steals one big chunk from one node | Steals many small chunks from many nodes |
+| Unequal hardware | All servers get same share | Stronger servers get more vnodes |
+
+**The same benefit applies when adding a node:** the new node steals many small ranges from many existing nodes, instead of one giant chunk from one neighbor.
+
+---
+
+### The precise summary
+
+When a physical node fails, its many key ranges — each owned by a different virtual node — get reassigned independently, landing on multiple surviving servers. This turns one large failure event into many small redistribution events, keeping load balanced across the cluster.
+
+> **Consistent hashing alone minimizes key movement. Virtual nodes make that movement balanced.**
