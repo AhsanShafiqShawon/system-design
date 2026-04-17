@@ -114,6 +114,7 @@ In Java specifically, the **JIT compiler** is aware of branch prediction. It pro
 
 The practical takeaway: in performance-critical inner loops, **data layout and access patterns matter** as much as algorithmic complexity.
 
+<a id="mutex"></a>
 # Mutex Lock/Unlock
 
 A **mutex** (short for **mut**ual **ex**clusion) is a synchronization tool used in multi-threaded programs to ensure that **only one thread can access a shared resource at a time**.
@@ -135,7 +136,6 @@ This is called a **race condition** — the result depends on the unpredictable 
 
 ---
 
-<a id="mutex"></a>
 ## How a Mutex Fixes It
 
 A mutex acts like a **key to a locked room**. Only the thread holding the key can enter. Everyone else waits outside.
