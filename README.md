@@ -10,10 +10,10 @@ A deep-dive into system design concepts — exploring how real systems behave un
 A deceptively simple question — *what breaks first at 1M RPS?* — used to unpack the interplay between network, CPU, and RAM under extreme load.
 
 [**Topic #2 — CPU Cache**](/topics/topic-2-cpu-cache.md)
-How L1/L2/L3 cache hierarchies work, why cache misses are so costly, and how cache-aware design decisions can dramatically change performance.
+How L1/L2/L3 cache hierarchies work, why cache misses are so costly, and how cache-aware design decisions can dramatically change performance. We have attached a guide on [**Latency Numbers](/resources/latency-number-every-programmer-should-know.md) in resource.
 
 [**Topic #3 — Core Pinning**](/topics/topic-3-core-pinning.md)
-What CPU affinity and core pinning are, why high-throughput systems use them, and how they reduce context-switching overhead and NUMA-related latency.
+What CPU affinity and core pinning are, why high-throughput systems use them, and how they reduce context-switching overhead and NUMA-related latency. [**Process VS Thread](/resources/process-vs-thread.md) and [**Concurrency VS Parallelism](/resources/concurrency-vs-parallelism.md) can help to understand core pinning deeply. We have added [**Event Loop](/resources/event-loop.md) as an additional reading.
 
 [**Topic #4 — CAP Theorem**](/topics/topic-4-cap-theorem.md)
 A breakdown of Consistency, Availability, and Partition Tolerance — what the theorem actually guarantees (and what it doesn't), with real-world database examples.
