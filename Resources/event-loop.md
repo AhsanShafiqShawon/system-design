@@ -1,4 +1,4 @@
-# The Event Loop — Explained
+# The Event Loop
 
 ---
 
