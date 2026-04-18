@@ -1,4 +1,4 @@
-# System Design Fundamentals
+# System Design Components
 
 A deep-dive into system design concepts — exploring how real systems behave under load, where they break, and how to reason about them from first principles.
 
