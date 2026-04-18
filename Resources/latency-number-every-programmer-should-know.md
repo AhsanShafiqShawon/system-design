@@ -26,7 +26,7 @@ At 100ns, you reach a **main memory reference** — reading from RAM. Notice how
 
 ## Tier 2 — Memory & Compression (microseconds)
 
-1 microsecond = 1,000 nanoseconds. **Compressing 1KB with Zippy** takes about 3µs — a reminder that even lightweight compression is not free. The landmark here is **10µs**, which represents a meaningful chunk of time for an in-memory operation and serves as a useful mental benchmark when thinking about the tiers that follow.
+1 microsecond = 1,000 nanoseconds. [**Compressing 1KB with Zippy**](#compressing-1KB-with-zippy) takes about 3µs — a reminder that even lightweight compression is not free. The landmark here is **10µs**, which represents a meaningful chunk of time for an in-memory operation and serves as a useful mental benchmark when thinking about the tiers that follow.
 
 ---
 
@@ -211,3 +211,40 @@ The **25ns is the uncontended happy path** — when no other thread is competing
 ## The Core Takeaway
 
 A mutex trades **a small performance cost for correctness**. The 25ns uncontended cost is negligible in most applications. The real danger is contention — designing your system to minimize threads competing for the same lock is far more important than the raw cost of the operation itself.
+
+---
+
+<a id="compressing-1KB-with-zippy"></a>
+# Compressing 1KB with Zippy
+
+This refers to running **Snappy** (Google's compression library, originally called "Zippy" internally at Google) on a 1KB chunk of data.
+
+---
+
+## Breaking It Down
+
+**"1KB"** — a small piece of data, about the size of a short paragraph of text or a tiny JSON payload.
+
+**"Zippy/Snappy"** — a compression algorithm made by Google. Unlike ZIP or gzip which prioritize *maximum compression ratio*, Snappy deliberately trades compression ratio for **raw speed**. It won't shrink your data as much, but it does it extremely fast.
+
+---
+
+## Design Philosophy
+
+| Algorithm | Priority | Typical Use |
+|-----------|----------|-------------|
+| gzip | Compress as small as possible | Static web assets, file archiving |
+| Snappy | Compress as *fast* as possible | Databases, RPC, real-time systems |
+
+Snappy's philosophy is essentially: *"A 50% size reduction at blazing speed is more useful than 70% reduction at 10× the cost."*
+
+---
+
+## Why It Appears on the Latency Chart
+
+The point of including it isn't really about Snappy specifically — it's to show that **even a fast CPU-bound operation costs real time**. At 3µs, compressing 1KB is:
+
+- ~6,000× slower than an L1 cache read
+- ~30× slower than a main memory reference
+
+So if you're compressing data on every request in a hot path, those 3µs add up fast. It's a reminder that **"it's just CPU work, no I/O"** doesn't automatically mean it's free.
