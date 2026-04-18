@@ -1,6 +1,6 @@
 # System Design Fundamentals
 
-A personal deep-dive into system design concepts — exploring how real systems behave under load, where they break, and how to reason about them from first principles.
+A deep-dive into system design concepts — exploring how real systems behave under load, where they break, and how to reason about them from first principles.
 
 ---
 
