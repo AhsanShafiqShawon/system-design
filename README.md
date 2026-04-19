@@ -20,3 +20,10 @@ A breakdown of Consistency, Availability, and Partition Tolerance — what the t
 
 [**Topic #5 — Consistent Hashing**](/topics/topic-5-consistent-hashing.md)
 How consistent hashing solves the node addition/removal problem in distributed systems, and why it's a cornerstone of scalable caching and sharding strategies.
+
+---
+
+## Additional Resources
+
+[**Streaming a Million Likes/Second: Real-Time Interactions on Live Video**](/resources/linkedins-real-time-platform.md)
+A talk given by [Akhilesh Gupta](https://www.linkedin.com/in/guptaakhilesh/) on how Linkedin uses the Play/Akka Framework and a scalable distributed system to enable live interactions like likes/comments at massive scale at extremely low costs across multiple data centers.
