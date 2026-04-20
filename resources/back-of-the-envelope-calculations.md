@@ -172,13 +172,13 @@ When evaluating any design decision, run through this checklist:
 ## Quick Reference Card
 
 ```
-L1 cache:           0.5 ns
-L2 cache:           7 ns
-RAM access:         100 ns
-SSD read:           ~100 µs   (not in original list, but useful)
-Disk seek:          10 ms     ← this is the big one
-DC round trip:      0.5 ms
-Cross-continent:    150 ms
+L1 cache:            0.5 ns
+L2 cache:            7 ns
+RAM access:          100 ns
+SSD read:            ~100 µs   (not in original list, but useful)
+Disk seek:           10 ms     ← this is the big one
+DC round trip:       0.5 ms
+Cross-continent:     150 ms
 
 Memory read (1MB):   0.25 ms
 Network read (1MB):  10 ms
