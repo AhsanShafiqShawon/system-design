@@ -21,6 +21,10 @@ A breakdown of Consistency, Availability, and Partition Tolerance — what the t
 [**Topic #5 — Consistent Hashing**](/topics/topic-5-consistent-hashing.md)
 How consistent hashing solves the node addition/removal problem in distributed systems, and why it's a cornerstone of scalable caching and sharding strategies.
 
+[**Topic #6 — Latency**](/topics/topic-6-latency.md)
+How latency originates, compounds, and is measured across software systems — from I/O and queuing delays to tail latency amplification and distributed tracing.
+
+
 ---
 
 ## Additional Resources
