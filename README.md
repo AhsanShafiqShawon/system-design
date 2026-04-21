@@ -35,4 +35,4 @@ How throughput is defined, measured, and maximized across hardware and software 
 A talk given by [Akhilesh Gupta](https://www.linkedin.com/in/guptaakhilesh/) on how Linkedin uses the Play/Akka Framework and a scalable distributed system to enable live interactions like likes/comments at massive scale at extremely low costs across multiple data centers.
 
 * [**Use Back-of-the-envelope-calculations to Choose the Best Design**](/resources/back-of-the-envelope-calculations.md)
-Jeff Dean, Head of Google's School of Infrastructure Wizardry—instrumental in many of Google's key systems: ad serving, BigTable; search, MapReduce, ProtocolBuffers—advocates evaluating different designs using back-of-the-envelope calculations. He gives the full story in a Stanford video presentation.
+A model proposed by Jeff Dean, Head of Google's School of Infrastructure Wizardry—instrumental in many of Google's key systems: ad serving, BigTable; search, MapReduce, ProtocolBuffers—advocates evaluating different designs using back-of-the-envelope calculations. He gives the full story in a Stanford video presentation.
