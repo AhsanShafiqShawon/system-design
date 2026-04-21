@@ -25,9 +25,7 @@ How consistent hashing solves the node addition/removal problem in distributed s
 How latency originates, compounds, and is measured across software systems — from I/O and queuing delays to tail latency amplification and distributed tracing.
 
 [**Topic #7 — Throughput**](/topics/topic-7-throughput.md)
-How throughput is defined, measured, and maximized across hardware and software layers — from CPU pipelines and memory bandwidth to application-level RPS, Little's Law, and JVM-specific tuning.
-
-
+How throughput is defined, measured, and maximized across hardware and software layers — from CPU pipelines and memory bandwidth to application-level RPS, Little's Law, and JVM-specific tuning. We have added an additional reading, [**Math, Formula and Relation**](/resources/math-formula-relation-and-others.md) on the associated topics around latency and throughput.
 
 ---
 
