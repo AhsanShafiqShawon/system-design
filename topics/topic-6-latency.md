@@ -230,6 +230,35 @@ If the external API call starts taking 150ms, the budget is blown. Latency budge
 
 ---
 
+### 8. Is Latency a Server-Side or Client-Side Concept?
+
+**Both** — it depends on where you're measuring from.
+
+Latency is fundamentally a **measurement perspective**, not an inherent property of one side.
+
+#### Client-Side Latency
+
+What the user or caller *experiences* — the full round trip from sending a request to receiving a response. This includes network transit both ways, plus everything the server did in between.
+
+#### Server-Side Latency
+
+What the server *observes* — the time from receiving the request to sending the response. This excludes network propagation entirely.
+
+These two numbers are almost never equal, and the gap between them is network time. A server might report p99 latency of 50ms, while the client experiences 200ms — the difference is 150ms of network overhead the server never sees.
+
+This is why in distributed tracing, you instrument **both sides** — a span on the client and a span on the server — so you can see where time is actually going. If the server says 50ms but the client sees 200ms, you know the problem is in the network (or the client itself), not in your application logic.
+
+#### In Practice
+
+| Context | Perspective |
+|---|---|
+| SLA: "respond within 200ms" | **Client-side** commitment |
+| Profiling and optimizing code | **Server-side** latency |
+
+Both matter — and confusing the two leads to measuring the wrong thing.
+
+---
+
 ## Summary
 
 Latency in software is a **layered problem**:
