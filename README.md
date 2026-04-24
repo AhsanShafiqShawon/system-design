@@ -28,7 +28,7 @@ How latency originates, compounds, and is measured across software systems — f
 How throughput is defined, measured, and maximized across hardware and software layers — from CPU pipelines and memory bandwidth to application-level RPS, Little's Law, and JVM-specific tuning. We have added an additional reading, [**Math, Formula and Relation**](/resources/math-formula-relation-and-others.md) on the associated topics around latency and throughput.
 
 [**Topic #8 — Request-Response Pipeline**](/topics/topic-8-request-response-pipeline.md)
-How a request travels end-to-end through a system — from the client's first byte to the server's last — and where latency, bottlenecks, and failures hide along the way. [**How does DNS work**](/resources/how-does-dns-work.md) would help to understand the pipeline better.
+How a request travels end-to-end through a system — from the client's first byte to the server's last — and where latency, bottlenecks, and failures hide along the way. [**How does DNS work**](/resources/how-does-dns-work.md) would help to understand the pipeline better. Here is a note on [**All About Proxy**](/resources//all-about-proxies.md) will enhance the understanding of the pipeline.
 
 ---
 
