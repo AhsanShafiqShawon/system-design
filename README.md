@@ -5,9 +5,11 @@ A deep-dive into system design concepts — exploring how real systems behave un
 ---
 
 ## Topics
+* [**Phase 1**](#phase1)
+* [**Phase 2**](#phase2)
 
 ---
-
+<id="phase1"></id>
 ### Phase 1
 
 [**Topic #1 — An Open Question**](/topics/topic-1-an-open-question.md)
@@ -35,7 +37,7 @@ How throughput is defined, measured, and maximized across hardware and software 
 How a request travels end-to-end through a system — from the client's first byte to the server's last — and where latency, bottlenecks, and failures hide along the way. [**How does DNS work**](/resources/how-does-dns-work.md) would help to understand the pipeline better. Here is a note on [**All About Proxy**](/resources//all-about-proxies.md) will enhance the understanding of the pipeline.
 
 ---
-
+<id="phase2"></id>
 ### Phase 2
 
 [**Topic #9 — ??**]()
