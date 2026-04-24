@@ -229,7 +229,239 @@ More sophisticated routing logic generally lives in an **API Gateway** or a **se
 
 ---
 
-## 7. How They All Relate
+## 7. Load Balancer Deep Dive
+
+### L4 vs L7 — The Two Layers of Load Balancing
+
+These labels come from the **OSI model** — a conceptual stack that describes how network communication is organised, from raw electrical signals at the bottom to application data at the top. You don't need to memorise all 7 layers. Just know two of them:
+
+- **Layer 4 (Transport layer)** — knows about **TCP/UDP connections**: source IP, destination IP, port numbers. That's it. It cannot see inside the data being transferred.
+- **Layer 7 (Application layer)** — knows about **HTTP/HTTPS**: URLs, headers, cookies, request bodies, response codes. It understands what the traffic actually *is*.
+
+---
+
+#### L4 Load Balancer
+
+> *"I see a TCP connection arriving on port 443. I'll forward it to Server 2."*
+
+An L4 load balancer works at the **connection level**. It makes routing decisions based purely on network metadata — IP address and port — without ever looking at the content of the packets.
+
+```
+Client TCP connection  ──►  [L4 LB]  ──►  picks a backend by IP:port
+                                           (never opens the packet)
+```
+
+**How it works in practice:**
+
+When a client opens a TCP connection to the load balancer, the LB picks a backend and creates a second TCP connection to that server. It then forwards raw bytes between the two, acting as a TCP relay. It never reads HTTP headers, URLs, or cookies.
+
+**Characteristics:**
+
+| Property | Detail |
+|---|---|
+| **Speed** | Extremely fast — minimal processing, no packet inspection |
+| **Protocol agnostic** | Works with any TCP/UDP protocol: HTTP, gRPC, MySQL, SMTP, custom binary |
+| **Routing intelligence** | Low — can only use IP, port, and connection-level info |
+| **TLS** | Passes through encrypted traffic without decrypting it (TLS passthrough) |
+| **Stickiness** | Only IP-hash based (same IP → same server) |
+
+**When to use it:** High-throughput, low-latency scenarios — database connection pooling, real-time gaming, video streaming, any non-HTTP protocol.
+
+---
+
+#### L7 Load Balancer
+
+> *"I see a `POST /api/bookings` request with a JWT token for user #42. I'll route it to the Bookings cluster and log the request."*
+
+An L7 load balancer operates at the **HTTP level**. It fully decrypts and reads the request, makes intelligent routing decisions based on its content, and then forwards it (possibly modified) to a backend.
+
+```
+HTTP Request  ──►  [L7 LB decrypts + reads headers/URL/body]
+                         │
+                    routing decision
+                    (path, host, header, cookie, method)
+                         │
+                         ▼
+                    [Backend Server]
+```
+
+**Characteristics:**
+
+| Property | Detail |
+|---|---|
+| **Routing intelligence** | High — path, host, headers, cookies, HTTP method, query params |
+| **TLS termination** | Yes — decrypts HTTPS, so it can read the content |
+| **Sticky sessions** | Cookie-based (much more reliable than IP hash) |
+| **Request manipulation** | Can add/remove headers, rewrite URLs, inject tracing IDs |
+| **Protocol** | HTTP/1.1, HTTP/2, gRPC, WebSocket |
+| **Speed** | Slightly slower than L4 due to packet inspection — still very fast in practice |
+
+**When to use it:** Web applications, REST APIs, microservices — anywhere you want smart routing, TLS termination, or request-level observability.
+
+---
+
+#### L4 vs L7 — Side by Side
+
+```
+                    L4 Load Balancer        L7 Load Balancer
+                   ─────────────────       ──────────────────
+Sees:              IP + Port               Full HTTP request
+TLS:               Passthrough             Terminates (decrypts)
+Routing by:        IP, port                URL, headers, cookies
+Protocols:         Any TCP/UDP             HTTP, gRPC, WebSocket
+Speed:             ████████████ faster     ████████░░░░ slightly slower
+Intelligence:      ████░░░░░░░░ low        ████████████ high
+Use case:          DB, TCP, streaming      Web APIs, microservices
+```
+
+In practice, most web applications use an **L7 load balancer** (like AWS ALB, NGINX, Traefik). L4 load balancers (like AWS NLB) appear when you need raw throughput, non-HTTP protocols, or to preserve the client's original IP address.
+
+---
+
+### Health Checks
+
+A load balancer is only useful if it's sending traffic to servers that are **actually working**. Health checks are how it finds out.
+
+The load balancer periodically probes each backend server and marks it as **healthy** or **unhealthy**. Traffic only goes to healthy servers.
+
+#### Types of health checks
+
+**Passive (implicit)** — The LB watches real traffic. If a server returns too many errors (5xx) or times out repeatedly, it marks it unhealthy. No extra probes. Downside: a real user request has to fail first before the LB notices.
+
+**Active (explicit)** — The LB sends dedicated probe requests on a schedule, independent of real traffic. This is the standard approach.
+
+Active checks come in levels of sophistication:
+
+| Level | What's checked | Example |
+|---|---|---|
+| **TCP ping** | Can I open a TCP connection to port 8080? | Server process is up and listening |
+| **HTTP check** | Does `GET /health` return 200 OK? | App is responding |
+| **Deep health check** | Does `/health` confirm DB connection, cache, and dependencies are up? | App is *truly* ready |
+
+A well-designed deep health check endpoint in your app might look like this:
+
+```
+GET /health/ready
+
+{
+  "status": "UP",
+  "db": "UP",
+  "cache": "UP",
+  "diskSpace": "UP"
+}
+→ returns 200 OK   ✓ LB sends traffic here
+
+{
+  "status": "DOWN",
+  "db": "DOWN"     ← can't reach database
+}
+→ returns 503   ✗ LB stops sending traffic here
+```
+
+#### Health check configuration
+
+```
+interval:           10s    ← probe every 10 seconds
+timeout:            2s     ← if no response in 2s, count as failed
+healthy_threshold:  2      ← 2 consecutive successes → mark healthy
+unhealthy_threshold: 3     ← 3 consecutive failures  → mark unhealthy
+```
+
+The **thresholds** prevent flapping — a server isn't pulled out of rotation because of one transient hiccup, and it isn't put back until it's proven stable.
+
+#### What happens when a server goes unhealthy
+
+```
+[LB] ──► Server1 ✓  (healthy, gets traffic)
+     ──► Server2 ✓  (healthy, gets traffic)
+     ──► Server3 ✗  (unhealthy — LB stops routing here)
+
+Server3 later recovers → passes health checks → LB re-adds it to rotation
+```
+
+This is the mechanism that makes zero-downtime deployments possible. When you deploy a new version of your app, you can take servers out of rotation gracefully, update them, wait for health checks to pass, and bring them back — all without a single dropped request.
+
+---
+
+### Connection Draining
+
+> *"Before I take this server offline, let me wait for it to finish what it's doing."*
+
+When you want to remove a server from the pool — for deployment, scaling down, or maintenance — you can't just cut the connection. There might be **in-flight requests** on that server right now: a user uploading a booking, a payment being processed, a report being generated. Kill the server abruptly and those requests fail.
+
+**Connection draining** (also called **deregistration delay** in AWS) is the graceful shutdown process:
+
+```
+Normal operation:
+LB  ──► Server A  ✓ (gets new connections)
+    ──► Server B  ✓ (gets new connections)
+    ──► Server C  ✓ (gets new connections)
+
+Server C marked for removal:
+LB  ──► Server A  ✓ (gets new connections)
+    ──► Server B  ✓ (gets new connections)
+    ──► Server C  ⏳ DRAINING
+                      ├── existing request #1... completing
+                      ├── existing request #2... completing
+                      └── no new requests accepted
+
+After drain timeout (e.g. 30s):
+    ──► Server C  ✗ removed — now safe to shut down or redeploy
+```
+
+#### The drain window
+
+You configure a **drain timeout** — a maximum time to wait. Typical values are 30–300 seconds depending on how long your longest requests might take.
+
+- Short-lived requests (simple REST APIs): 30 seconds is plenty
+- Long-running requests (file uploads, report generation, hotel search aggregation): set it longer
+
+If requests finish before the timeout, the server is freed immediately. If any requests are still running when the timeout expires, they are forcibly terminated — so set the timeout conservatively.
+
+#### Connection draining in a deployment pipeline
+
+This is what a **zero-downtime rolling deployment** actually looks like step by step:
+
+```
+1. Signal Server C to start draining
+   → LB stops sending new requests to Server C
+
+2. Wait for drain (existing requests finish)
+
+3. Server C is now idle — deploy new version
+
+4. New version starts, passes health checks
+
+5. LB adds Server C back to rotation
+
+6. Repeat for Server A, then Server B
+```
+
+At no point is your service unavailable. Users never see an error. This is why connection draining is a prerequisite for safe, professional deployments.
+
+#### In Spring Boot
+
+Spring Boot has built-in graceful shutdown support. When the JVM receives a `SIGTERM` (which your orchestrator or deployment script sends), Spring Boot:
+
+1. Stops accepting new HTTP requests
+2. Waits for in-flight requests to complete (up to a configured timeout)
+3. Then shuts down
+
+```yaml
+# application.yml
+server:
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+```
+
+This works hand-in-hand with the load balancer's connection draining — the LB drains at the network level, and Spring drains at the application level. Together they guarantee no request is dropped on deployment.
+
+---
+
+## 9. How They All Relate
 
 Here's the big picture, laid out plainly:
 
@@ -278,5 +510,9 @@ And if your employees need to reach an external service:
 | **Compression** | Shrinking responses at the proxy before sending to clients |
 | **Buffering** | Absorbing slow clients at the proxy so backends are freed up fast |
 | **Routing** | Deciding which backend handles a request based on path, headers, method, or weight |
+| **L4 Load Balancer** | Routes TCP connections by IP/port — fast, protocol-agnostic, no content inspection |
+| **L7 Load Balancer** | Routes HTTP requests by URL/headers/cookies — intelligent, inspects content, does TLS termination |
+| **Health Check** | Periodic probes that tell the LB which servers are alive and ready to take traffic |
+| **Connection Draining** | Graceful removal of a server — stops new traffic, waits for in-flight requests to finish |
 
 ---
