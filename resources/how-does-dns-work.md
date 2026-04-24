@@ -1,4 +1,4 @@
-# 🌐 DNS Explained in Plain English
+# 🌐 All About DNS
 
 ---
 
@@ -247,5 +247,3 @@ T + 1h    Raise TTL back up to 3600 (or your preferred value)
 | **DNS Propagation** | The gradual spread of a DNS change across all servers worldwide, constrained by TTL. |
 
 ---
-
-*Happy networking! 🚀*
