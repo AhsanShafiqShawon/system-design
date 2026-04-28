@@ -5,12 +5,12 @@ A deep-dive into system design concepts — exploring how real systems behave un
 ---
 
 ## Topics
-* [**Phase 1**](#phase1)
-* [**Phase 2**](#phase2)
-* [**Phase 3**](#phase3)
-* [**Phase 4**](#phase4)
-* [**Phase 5**](#phase5)
-* [**Additional Resources**](#additional-resources)
+* [**Phase 1**](#phase1) ✅ (Done)
+* [**Phase 2**](#phase2) 📢 (coming soon..)
+* [**Phase 3**](#phase3) 📢 (coming soon..)
+* [**Phase 4**](#phase4) 📢 (coming soon..)
+* [**Phase 5**](#phase5) 📢 (coming soon..)
+* [**Additional Resources**](#additional-resources) ⌛ (In Progress..)
 
 ---
 <a id="phase1"></a>
