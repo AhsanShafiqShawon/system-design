@@ -215,12 +215,12 @@ Base timeout values on measured **p99 latency** of healthy service responses, wi
 These patterns are not mutually exclusive — they are designed to **compose**:
 
 ```
-Incoming Request
-       │
-       ▼
+                 Incoming Request
+                        │
+                        ▼
   ┌─────────────────────────────────────────────┐
-  │              Bulkhead                        │
-  │  (dedicated thread pool per dependency)      │
+  │              Bulkhead                       │
+  │  (dedicated thread pool per dependency)     │
   │                                             │
   │   ┌──────────────────────────────────────┐  │
   │   │         Circuit Breaker              │  │
