@@ -349,10 +349,6 @@ These three concepts are deeply related. Here's how they fit together:
 
 **The bottom line:**
 
-- If you're building a **traditional web app or monolith** (like miniAgoda 🏨), **sessions with a shared Redis store** are robust, easy to revoke, and well-understood.
+- If you're building a **traditional web app or monolith**, **sessions with a shared Redis store** are robust, easy to revoke, and well-understood.
 - If you're building a **REST API, microservices platform, or mobile app**, **JWT** is the natural fit — stateless, portable, and no shared infrastructure required.
 - **Sticky sessions** are a pragmatic shortcut but carry real operational risk. Treat them as a temporary solution, not a foundation.
-
----
-
-*Understanding these trade-offs is what separates engineers who "make it work" from engineers who design systems that stay working at scale.*
