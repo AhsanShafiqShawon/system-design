@@ -4,7 +4,7 @@ A deep-dive into system design concepts — exploring how real systems behave un
 
 ---
 
-## Topics
+## Index
 * [**Phase 1**](#phase1) ✅ (Done)
 * [**Phase 2**](#phase2) 📢 (coming soon..)
 * [**Phase 3**](#phase3) 📢 (coming soon..)
