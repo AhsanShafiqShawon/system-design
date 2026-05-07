@@ -782,5 +782,3 @@ Cursors aren't a free lunch. They come with real limitations:
 For any modern, high-traffic application with dynamic data, **cursor-based pagination is the default right answer.**
 
 ---
-
-*End of document.*
