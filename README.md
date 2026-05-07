@@ -44,8 +44,8 @@ How a request travels end-to-end through a system — from the client's first by
 <a id="phase2"></a>
 ### Phase 2
 
-[**Topic #9 — ??**]()
-Some description Some description Some description Some description Some description Some description Some description Some description Some description Some description.
+[**Topic #9 — API and Networking Concepts**](/topics/topic-9-api-and-networking-concepts.md)
+How clients and servers agree to talk — covering REST, RPC, gRPC, and GraphQL, the hidden costs of JSON at scale, the math behind encrypted connections, and strategies for paginating data without breaking under load.
 
 ---
 <a id="additional-resources"></a>
